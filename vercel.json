@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.9"
+    }
+  },
+  "routes": [
+    { "src": "/extract", "methods": ["POST"], "dest": "api/index.py" }
+  ]
+}
