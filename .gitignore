@@ -1,6 +1,10 @@
 Internal files
 venv
-Input/
-Output/
+Input/*
+Output/*
 poppler-24.08.0
-temp_images/
+temp_images/*
+
+!Input/.keep
+!Output/.keep
+!temp_images/.keep
