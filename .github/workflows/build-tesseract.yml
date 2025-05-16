@@ -1,0 +1,74 @@
+name: build-tesseract-static
+
+###############################################################################
+# Run this workflow manually from the GitHub UI (“Actions” → “Run workflow”)  #
+###############################################################################
+on:
+  workflow_dispatch:
+    inputs:
+      tess_version:
+        description: "Tesseract tag (e.g. 5.3.4)"
+        default: "5.3.4"
+      languages:
+        description: "Space-separated list of .traineddata to include"
+        default: "eng"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Build **inside** an Amazon Linux 2 container → ensures compatibility
+    container: amazonlinux:2
+
+    steps:
+
+    # 1) Check out repository (not strictly required, but keeps GITHUB_WORKSPACE)
+    - uses: actions/checkout@v3
+
+    # 2) Install build tool-chain + leptonica-devel
+    - name: Install build dependencies
+      run: |
+        yum install -y \
+          gcc gcc-c++ make automake autoconf libtool \
+          git wget tar gzip \
+          leptonica-devel
+
+    # 3) Clone, configure & compile Tesseract as a **static** executable
+    - name: Build Tesseract ${{ inputs.tess_version }}
+      run: |
+        set -e
+        git clone --depth 1 --branch ${TESS_VERSION} https://github.com/tesseract-ocr/tesseract
+        cd tesseract
+        ./autogen.sh
+        ./configure --prefix=/opt/tesseract --disable-shared \
+                    CFLAGS="-O2 -static" CXXFLAGS="-O2 -static"
+        make -j$(nproc)
+        make install-strip               # puts files in /opt/tesseract
+
+      env:
+        TESS_VERSION: ${{ inputs.tess_version }}
+
+    # 4) Download extra language files, if requested
+    - name: Add language data
+      if: inputs.languages != 'eng'
+      run: |
+        mkdir -p /opt/tesseract/share/tessdata
+        for L in $LANGS ; do
+          wget -q https://github.com/tesseract-ocr/tessdata_best/raw/main/$L.traineddata \
+               -O /opt/tesseract/share/tessdata/$L.traineddata
+        done
+      env:
+        LANGS: ${{ inputs.languages }}
+
+    # 5) Pack everything into one tar.gz
+    - name: Create tarball
+      run: |
+        cd /opt
+        tar -czf $GITHUB_WORKSPACE/tesseract-static.tar.gz tesseract
+
+    # 6) Upload artifact so you can fetch it from the UI
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: tesseract-static
+        path: tesseract-static.tar.gz
