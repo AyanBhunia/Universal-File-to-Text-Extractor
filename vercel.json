@@ -1,8 +1,6 @@
 {
   "functions": {
-    "api/index.py": {
-      "runtime": "python@3.13.3"
-    }
+    "api/index.py": { }
   },
   "routes": [
     { "src": "/extract", "methods": ["POST"], "dest": "api/index.py" }
