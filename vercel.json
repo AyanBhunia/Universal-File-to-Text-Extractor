@@ -1,7 +1,4 @@
 {
-  "functions": {
-    "api/index.py": { }
-  },
   "routes": [
     { "src": "/extract", "methods": ["POST"], "dest": "api/index.py" }
   ]
