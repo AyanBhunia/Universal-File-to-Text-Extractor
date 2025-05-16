@@ -11,7 +11,7 @@ on:
         default: "5.3.4"
       languages:
         description: "Space-separated list of .traineddata to include"
-        default: "eng"
+        default: "eng deu"
 
 jobs:
   build:
@@ -68,7 +68,7 @@ jobs:
 
     # 6) Upload artifact so you can fetch it from the UI
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v3.1.3
       with:
         name: tesseract-static
         path: ${{ github.workspace }}/tesseract-static.tar.gz
