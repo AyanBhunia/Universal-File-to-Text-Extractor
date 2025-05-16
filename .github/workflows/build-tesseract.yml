@@ -13,17 +13,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Use newer Amazon Linux that has compatible GLIBC
     container: amazonlinux:2023
     
     steps:
+      # First install basic tools needed by GitHub Actions
+      - name: Install basic utilities
+        run: |
+          dnf install -y tar gzip git
+
+      # Now checkout will work
       - uses: actions/checkout@v3
       
       - name: Install build dependencies
         run: |
           dnf install -y \
             gcc gcc-c++ make automake autoconf libtool \
-            git wget tar gzip \
+            wget \
             leptonica-devel
       
       - name: Build Tesseract ${{ inputs.tess_version }}
