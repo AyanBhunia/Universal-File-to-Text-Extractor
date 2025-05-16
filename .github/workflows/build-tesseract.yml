@@ -26,12 +26,16 @@ jobs:
       
       - name: Install build dependencies
         run: |
+          # First try to find the correct package name for OpenJPEG
+          dnf search openjp || echo "No OpenJPEG packages found"
+          
           # Install compilation tools and dependencies for image libraries
+          # Removed libopenjp2-devel which doesn't exist
           dnf install -y \
             gcc gcc-c++ make automake autoconf libtool pkg-config \
             wget \
             zlib-devel libpng-devel libjpeg-devel libtiff-devel \
-            giflib-devel libwebp-devel libopenjp2-devel
+            giflib-devel libwebp-devel
       
       - name: Build Leptonica from source
         run: |
