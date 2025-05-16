@@ -71,4 +71,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: tesseract-static
-        path: tesseract-static.tar.gz
+        path: ${{ github.workspace }}/tesseract-static.tar.gz
