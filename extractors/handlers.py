@@ -5,8 +5,9 @@ import shutil
 import zipfile
 
 import docx2txt
+from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent / "ocr-bin"
+ROOT = Path(__file__).resolve().parent.parent / "api" / "ocr-bin"
 os.environ["PATH"] = str(ROOT / "bin") + os.pathsep + os.environ["PATH"]
 os.environ["TESSDATA_PREFIX"] = str(ROOT / "share")
 pytesseract.pytesseract.tesseract_cmd = str(ROOT / "bin" / "tesseract")
