@@ -4,6 +4,11 @@ import uuid
 import shutil
 import zipfile
 
+print("DEBUG - Current directory:", os.getcwd())
+print("DEBUG - Directory contents:", os.listdir())
+print("DEBUG - Directory contents:api", os.listdir('/api'))
+print("DEBUG - API directory contents:", os.listdir('/var/task/api') if os.path.exists('/var/task/api') else "API DIR NOT FOUND")
+
 import docx2txt
 from pathlib import Path
 import pytesseract
