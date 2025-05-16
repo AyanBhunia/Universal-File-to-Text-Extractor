@@ -11,16 +11,17 @@ on:
         default: "eng deu"
 
 jobs:
-  build-in-container:
+  build:
     runs-on: ubuntu-latest
-    container: amazonlinux:2
+    # Use newer Amazon Linux that has compatible GLIBC
+    container: amazonlinux:2023
     
     steps:
       - uses: actions/checkout@v3
       
       - name: Install build dependencies
         run: |
-          yum install -y \
+          dnf install -y \
             gcc gcc-c++ make automake autoconf libtool \
             git wget tar gzip \
             leptonica-devel
@@ -52,36 +53,10 @@ jobs:
       - name: Create tarball
         run: |
           cd /opt
-          tar -czf tesseract-static.tar.gz tesseract
-          # Move to a location that can be accessed from outside the container
-          cp tesseract-static.tar.gz $GITHUB_WORKSPACE/
-      
-      # Use a custom approach to "upload" that doesn't rely on actions
-      - name: Save file for next job
-        run: |
-          # Base64 encode to safely output as text
-          base64 $GITHUB_WORKSPACE/tesseract-static.tar.gz > $GITHUB_WORKSPACE/tesseract-static.b64
-          # Echo special markers that can be parsed in the next job
-          echo "::set-output name=b64_file::$GITHUB_WORKSPACE/tesseract-static.b64"
-        id: save
-  
-  # This job runs in the default environment where actions work properly
-  upload-artifact:
-    needs: build-in-container
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Create artifact directory
-        run: mkdir -p artifact
-      
-      - name: Retrieve and decode file
-        run: |
-          # Read the base64 data from the previous job
-          cat ${{ needs.build-in-container.outputs.b64_file }} | base64 -d > artifact/tesseract-static.tar.gz
+          tar -czf $GITHUB_WORKSPACE/tesseract-static.tar.gz tesseract
       
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: tesseract-static
-          path: artifact/tesseract-static.tar.gz
-          retention-days: 14
+          path: ${{ github.workspace }}/tesseract-static.tar.gz
