@@ -16,26 +16,21 @@ jobs:
     container: amazonlinux:2023
     
     steps:
-      # First install basic tools needed by GitHub Actions
       - name: Install basic utilities
         run: |
           dnf install -y tar gzip git
       
-      # Now checkout will work
       - uses: actions/checkout@v3
       
       - name: Install build dependencies
         run: |
-          # First try to find the correct package name for OpenJPEG
-          dnf search openjp || echo "No OpenJPEG packages found"
-          
-          # Install compilation tools and dependencies for image libraries
-          # Removed libopenjp2-devel which doesn't exist
+          # Install more comprehensive development tools and libraries
           dnf install -y \
             gcc gcc-c++ make automake autoconf libtool pkg-config \
             wget \
             zlib-devel libpng-devel libjpeg-devel libtiff-devel \
-            giflib-devel libwebp-devel
+            giflib-devel libwebp-devel \
+            glibc-static libstdc++-static # These are needed for static linking
       
       - name: Build Leptonica from source
         run: |
@@ -47,17 +42,30 @@ jobs:
           ./configure --prefix=/usr
           make -j$(nproc)
           make install
-          # Update the dynamic linker cache
           ldconfig
       
-      - name: Build Tesseract ${{ inputs.tess_version }}
+      - name: Try building with diagnostic info
         run: |
           set -e
           git clone --depth 1 --branch ${TESS_VERSION} https://github.com/tesseract-ocr/tesseract
           cd tesseract
           ./autogen.sh
-          ./configure --prefix=/opt/tesseract --disable-shared \
-                      CFLAGS="-O2 -static" CXXFLAGS="-O2 -static"
+          
+          # Run with diagnostic flags
+          ./configure --prefix=/opt/tesseract --disable-shared || true
+          
+          # View config.log for errors
+          if [ -f config.log ]; then
+            echo "===== CONFIG.LOG ERRORS ====="
+            grep -A 10 "C++ compiler cannot create executables" config.log || true
+            echo "============================"
+          fi
+          
+          # Try again with different flags
+          ./configure --prefix=/opt/tesseract \
+                    LDFLAGS="-static" \
+                    CFLAGS="-O2" CXXFLAGS="-O2"
+          
           make -j$(nproc)
           make install-strip
         env:
