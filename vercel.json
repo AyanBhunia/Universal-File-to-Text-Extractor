@@ -1,5 +1,14 @@
 {
   "routes": [
-    { "src": "/extract", "methods": ["POST"], "dest": "api/index.py" }
+    {
+      "src": "/extract",
+      "methods": ["POST"],
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/test",
+      "methods": ["GET"],
+      "dest": "api/index.py"
+    }
   ]
 }
