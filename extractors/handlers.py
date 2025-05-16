@@ -6,8 +6,10 @@ import zipfile
 
 import docx2txt
 
-os.environ["PATH"] = os.path.join(os.getcwd(), "ocr-bin") + os.pathsep + os.environ["PATH"]
-os.environ["TESSDATA_PREFIX"] = os.path.join(os.getcwd(), "ocr-bin", "tessdata")
+ROOT = Path(__file__).resolve().parent / "ocr-bin"
+os.environ["PATH"] = str(ROOT / "bin") + os.pathsep + os.environ["PATH"]
+os.environ["TESSDATA_PREFIX"] = str(ROOT / "share")
+pytesseract.pytesseract.tesseract_cmd = str(ROOT / "bin" / "tesseract")
 
 import pytesseract
 from PIL import Image
