@@ -6,17 +6,16 @@ import zipfile
 
 import docx2txt
 from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent.parent / "api" / "ocr-bin"
-os.environ["PATH"] = str(ROOT / "bin") + os.pathsep + os.environ["PATH"]
-os.environ["TESSDATA_PREFIX"] = str(ROOT / "share")
-pytesseract.pytesseract.tesseract_cmd = str(ROOT / "bin" / "tesseract")
-
 import pytesseract
 from PIL import Image
 from docx import Document
 from docx.text.paragraph import Paragraph
 from docx.table import Table
+
+ROOT = Path(__file__).resolve().parent.parent / "api" / "ocr-bin"
+os.environ["PATH"] = str(ROOT / "bin") + os.pathsep + os.environ["PATH"]
+os.environ["TESSDATA_PREFIX"] = str(ROOT / "share")
+pytesseract.pytesseract.tesseract_cmd = str(ROOT / "bin" / "tesseract")
 
 import fitz                       # PyMuPDF
 from striprtf.striprtf import rtf_to_text
