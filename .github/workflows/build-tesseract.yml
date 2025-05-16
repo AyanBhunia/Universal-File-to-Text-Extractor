@@ -20,31 +20,22 @@ jobs:
       - name: Install basic utilities
         run: |
           dnf install -y tar gzip git
-
+      
       # Now checkout will work
       - uses: actions/checkout@v3
       
-      # Find the correct leptonica package
-      - name: Find leptonica package
-        run: |
-          dnf update -y
-          dnf install -y dnf-plugins-core
-          dnf search leptonica
-          echo "Available packages that might contain leptonica:"
-          dnf list available | grep -i lept
-      
       - name: Install build dependencies
         run: |
-          # Enable PowerTools/EPEL if needed
-          dnf install -y epel-release
-          dnf config-manager --set-enabled devel
-          
-          # Install compilation tools
+          # Install compilation tools and dependencies for image libraries
           dnf install -y \
-            gcc gcc-c++ make automake autoconf libtool \
-            wget pkg-config
-          
-          # Try installing leptonica from source since package isn't available
+            gcc gcc-c++ make automake autoconf libtool pkg-config \
+            wget \
+            zlib-devel libpng-devel libjpeg-devel libtiff-devel \
+            giflib-devel libwebp-devel libopenjp2-devel
+      
+      - name: Build Leptonica from source
+        run: |
+          set -e
           cd /tmp
           wget https://github.com/DanBloomberg/leptonica/releases/download/1.83.1/leptonica-1.83.1.tar.gz
           tar -xzf leptonica-1.83.1.tar.gz
@@ -52,6 +43,8 @@ jobs:
           ./configure --prefix=/usr
           make -j$(nproc)
           make install
+          # Update the dynamic linker cache
+          ldconfig
       
       - name: Build Tesseract ${{ inputs.tess_version }}
         run: |
@@ -60,8 +53,7 @@ jobs:
           cd tesseract
           ./autogen.sh
           ./configure --prefix=/opt/tesseract --disable-shared \
-                      CFLAGS="-O2 -static" CXXFLAGS="-O2 -static" \
-                      PKG_CONFIG_PATH=/usr/lib/pkgconfig
+                      CFLAGS="-O2 -static" CXXFLAGS="-O2 -static"
           make -j$(nproc)
           make install-strip
         env:
