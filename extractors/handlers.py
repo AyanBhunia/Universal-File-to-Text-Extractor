@@ -5,6 +5,10 @@ import shutil
 import zipfile
 
 import docx2txt
+
+os.environ["PATH"] = os.path.join(os.getcwd(), "ocr-bin") + os.pathsep + os.environ["PATH"]
+os.environ["TESSDATA_PREFIX"] = os.path.join(os.getcwd(), "ocr-bin", "tessdata")
+
 import pytesseract
 from PIL import Image
 from docx import Document
