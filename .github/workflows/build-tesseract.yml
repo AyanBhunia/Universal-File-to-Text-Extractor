@@ -1,8 +1,5 @@
 name: build-tesseract-static
 
-###############################################################################
-# Run this workflow manually from the GitHub UI ("Actions" → "Run workflow")  #
-###############################################################################
 on:
   workflow_dispatch:
     inputs:
@@ -14,17 +11,13 @@ on:
         default: "eng deu"
 
 jobs:
-  build:
+  build-in-container:
     runs-on: ubuntu-latest
-    
-    # Build **inside** an Amazon Linux 2 container → ensures compatibility
     container: amazonlinux:2
     
     steps:
-      # 1) Check out repository (not strictly required, but keeps GITHUB_WORKSPACE)
       - uses: actions/checkout@v3
       
-      # 2) Install build tool-chain + leptonica-devel
       - name: Install build dependencies
         run: |
           yum install -y \
@@ -32,7 +25,6 @@ jobs:
             git wget tar gzip \
             leptonica-devel
       
-      # 3) Clone, configure & compile Tesseract as a **static** executable
       - name: Build Tesseract ${{ inputs.tess_version }}
         run: |
           set -e
@@ -42,11 +34,10 @@ jobs:
           ./configure --prefix=/opt/tesseract --disable-shared \
                       CFLAGS="-O2 -static" CXXFLAGS="-O2 -static"
           make -j$(nproc)
-          make install-strip               # puts files in /opt/tesseract
+          make install-strip
         env:
           TESS_VERSION: ${{ inputs.tess_version }}
       
-      # 4) Download extra language files, if requested
       - name: Add language data
         if: inputs.languages != 'eng'
         run: |
@@ -58,41 +49,39 @@ jobs:
         env:
           LANGS: ${{ inputs.languages }}
       
-      # 5) Pack everything into one tar.gz
       - name: Create tarball
         run: |
           cd /opt
-          tar -czf $GITHUB_WORKSPACE/tesseract-static.tar.gz tesseract
+          tar -czf tesseract-static.tar.gz tesseract
+          # Move to a location that can be accessed from outside the container
+          cp tesseract-static.tar.gz $GITHUB_WORKSPACE/
       
-      # 6) Store the artifact for the next job
-      - name: Save artifact to workspace
+      # Use a custom approach to "upload" that doesn't rely on actions
+      - name: Save file for next job
         run: |
-          # Ensure the file exists and is readable
-          ls -la $GITHUB_WORKSPACE/tesseract-static.tar.gz
-          # Store in a location that persists between jobs
-          mkdir -p /github/workspace/
-          cp $GITHUB_WORKSPACE/tesseract-static.tar.gz /github/workspace/
+          # Base64 encode to safely output as text
+          base64 $GITHUB_WORKSPACE/tesseract-static.tar.gz > $GITHUB_WORKSPACE/tesseract-static.b64
+          # Echo special markers that can be parsed in the next job
+          echo "::set-output name=b64_file::$GITHUB_WORKSPACE/tesseract-static.b64"
+        id: save
   
-  # Separate job that runs in the default environment (not in a container)
-  upload:
-    needs: build
+  # This job runs in the default environment where actions work properly
+  upload-artifact:
+    needs: build-in-container
     runs-on: ubuntu-latest
     
     steps:
-      # 1) Check out repository to access workspace
-      - uses: actions/checkout@v3
+      - name: Create artifact directory
+        run: mkdir -p artifact
       
-      # 2) Verify artifact exists
-      - name: Check for artifact
+      - name: Retrieve and decode file
         run: |
-          ls -la
-          # Should be accessible from the workspace
-          ls -la tesseract-static.tar.gz || echo "File not found"
+          # Read the base64 data from the previous job
+          cat ${{ needs.build-in-container.outputs.b64_file }} | base64 -d > artifact/tesseract-static.tar.gz
       
-      # 3) Upload the artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: tesseract-static
-          path: tesseract-static.tar.gz
+          path: artifact/tesseract-static.tar.gz
           retention-days: 14
