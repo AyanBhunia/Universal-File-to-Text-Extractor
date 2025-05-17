@@ -1,44 +1,93 @@
-name: download-tesseract-languages
+name: build-tesseract-static
 
 on:
   workflow_dispatch:
     inputs:
+      tess_version:
+        description: "Tesseract tag (e.g. 5.3.4)"
+        default: "5.3.4"
       languages:
-        description: "Space-separated list of languages to include (eng deu fra etc)"
+        description: "Space-separated list of .traineddata to include"
         default: "eng deu"
 
 jobs:
-  download:
+  build:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Download pre-built tesseract
-        run: |
-          mkdir -p tesseract-static/share/tessdata
-          # Download pre-built static binary
-          curl -L -o tesseract.tar.gz https://github.com/bweigel/aws-lambda-tesseract-layer/releases/download/v5.0.1/tesseract5-amazonlinux2.tar.gz
-          # Extract bin directory
-          tar -xf tesseract.tar.gz -C tesseract-static --strip-components=1 bin
+      - uses: actions/checkout@v3
       
-      - name: Download language files
+      - name: Build Tesseract in Docker
         run: |
-          # Download all requested language files
-          mkdir -p tesseract-static/share/tessdata
-          for LANG in ${{ inputs.languages }}; do
-            echo "Downloading $LANG.traineddata"
-            curl -L -o tesseract-static/share/tessdata/$LANG.traineddata \
-              https://github.com/tesseract-ocr/tessdata_best/raw/main/$LANG.traineddata
-          done
-          
-          # Create tarball
-          tar -czf tesseract-static.tar.gz -C tesseract-static .
-          
-          # List contents for verification
-          echo "Contents of archive:"
-          tar -tvf tesseract-static.tar.gz
+          mkdir -p artifact
+          docker run --rm -v $PWD/artifact:/output amazonlinux:2 /bin/bash -c '
+            # Install dependencies
+            yum install -y gcc gcc-c++ make automake autoconf libtool pkg-config \
+                wget tar gzip git \
+                zlib-devel libpng-devel libjpeg-devel libtiff-devel \
+                giflib-devel libwebp-devel
+            
+            # Build static Leptonica
+            cd /tmp
+            wget -q https://github.com/DanBloomberg/leptonica/releases/download/1.83.1/leptonica-1.83.1.tar.gz
+            tar -xzf leptonica-1.83.1.tar.gz
+            cd leptonica-1.83.1
+            
+            # Configure Leptonica as static
+            ./configure --prefix=/usr/local --disable-shared --enable-static \
+                        CFLAGS="-fPIC -O2" CXXFLAGS="-fPIC -O2"
+            
+            make -j$(nproc)
+            make install
+            
+            # Build static Tesseract
+            cd /tmp
+            git clone --depth 1 --branch ${{ inputs.tess_version }} https://github.com/tesseract-ocr/tesseract
+            cd tesseract
+            ./autogen.sh
+            
+            # Configure with static flags
+            PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
+            LDFLAGS="-static -L/usr/local/lib" \
+            CFLAGS="-static -O2" \
+            CXXFLAGS="-static -O2" \
+            ./configure --prefix=/opt/tesseract \
+                        --disable-shared \
+                        --enable-static \
+                        --disable-openmp
+            
+            make -j$(nproc)
+            
+            # Verify it is static
+            echo "Checking if binary is static:"
+            ldd ./src/api/tesseract || echo "GOOD: Not a dynamic executable"
+            
+            make install
+            strip /opt/tesseract/bin/tesseract
+            
+            # Download language data
+            mkdir -p /opt/tesseract/share/tessdata
+            
+            # Always include English
+            wget -q https://github.com/tesseract-ocr/tessdata_best/raw/main/eng.traineddata \
+                 -O /opt/tesseract/share/tessdata/eng.traineddata
+            
+            # Add additional languages
+            LANGS="${{ inputs.languages }}"
+            for L in $LANGS ; do
+              if [ "$L" != "eng" ]; then
+                wget -q https://github.com/tesseract-ocr/tessdata_best/raw/main/$L.traineddata \
+                     -O /opt/tesseract/share/tessdata/$L.traineddata
+              fi
+            done
+            
+            # Create tarball in the shared volume
+            cd /opt
+            tar -czf /output/tesseract-static.tar.gz tesseract
+          '
       
       - name: Upload artifact
         uses: actions/upload-artifact@main
         with:
           name: tesseract-static
-          path: tesseract-static.tar.gz
+          path: artifact/tesseract-static.tar.gz
