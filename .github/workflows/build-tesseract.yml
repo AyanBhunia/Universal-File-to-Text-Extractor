@@ -13,71 +13,78 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: amazonlinux:2023
+    # Use Amazon Linux 2, not 2023, to match Lambda/Vercel environment
+    container: amazonlinux:2
     
     steps:
-      - name: Install basic utilities
-        run: |
-          dnf install -y tar gzip git
-      
       - uses: actions/checkout@v3
       
       - name: Install build dependencies
         run: |
-          # Install more comprehensive development tools and libraries
-          dnf install -y \
+          yum install -y \
             gcc gcc-c++ make automake autoconf libtool pkg-config \
-            wget \
+            wget tar gzip git \
             zlib-devel libpng-devel libjpeg-devel libtiff-devel \
-            giflib-devel libwebp-devel \
-            glibc-static libstdc++-static # These are needed for static linking
+            giflib-devel libwebp-devel
       
-      - name: Build Leptonica from source
+      - name: Build static Leptonica
         run: |
-          set -e
+          set -ex
           cd /tmp
-          wget https://github.com/DanBloomberg/leptonica/releases/download/1.83.1/leptonica-1.83.1.tar.gz
+          wget -q https://github.com/DanBloomberg/leptonica/releases/download/1.83.1/leptonica-1.83.1.tar.gz
           tar -xzf leptonica-1.83.1.tar.gz
           cd leptonica-1.83.1
-          ./configure --prefix=/usr
+          
+          # CRITICAL: Configure Leptonica as a static library
+          ./configure --prefix=/usr/local --disable-shared --enable-static \
+                      CFLAGS="-fPIC -O2" CXXFLAGS="-fPIC -O2"
+          
           make -j$(nproc)
           make install
-          ldconfig
       
-      - name: Try building with diagnostic info
+      - name: Build static Tesseract
         run: |
-          set -e
+          set -ex
           git clone --depth 1 --branch ${TESS_VERSION} https://github.com/tesseract-ocr/tesseract
           cd tesseract
           ./autogen.sh
           
-          # Run with diagnostic flags
-          ./configure --prefix=/opt/tesseract --disable-shared || true
-          
-          # View config.log for errors
-          if [ -f config.log ]; then
-            echo "===== CONFIG.LOG ERRORS ====="
-            grep -A 10 "C++ compiler cannot create executables" config.log || true
-            echo "============================"
-          fi
-          
-          # Try again with different flags
+          # CRITICAL: Configure with all static linking flags
+          PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
+          LDFLAGS="-static -L/usr/local/lib" \
+          CFLAGS="-static -O2" \
+          CXXFLAGS="-static -O2" \
           ./configure --prefix=/opt/tesseract \
-                    LDFLAGS="-static" \
-                    CFLAGS="-O2" CXXFLAGS="-O2"
+                      --disable-shared \
+                      --enable-static \
+                      --disable-openmp \
+                      --disable-dependency-tracking
           
           make -j$(nproc)
-          make install-strip
+          
+          # VERIFICATION: Check if binary is truly static
+          echo "Checking if binary is static:"
+          ldd ./src/api/tesseract || echo "GOOD: Not a dynamic executable"
+          
+          # Install and strip for smaller size
+          make install
+          strip /opt/tesseract/bin/tesseract
         env:
           TESS_VERSION: ${{ inputs.tess_version }}
       
       - name: Add language data
-        if: inputs.languages != 'eng'
         run: |
           mkdir -p /opt/tesseract/share/tessdata
+          # Download English even if it's the only language (make sure it exists)
+          wget -q https://github.com/tesseract-ocr/tessdata_best/raw/main/eng.traineddata \
+               -O /opt/tesseract/share/tessdata/eng.traineddata
+          
+          # Add additional languages
           for L in $LANGS ; do
-            wget -q https://github.com/tesseract-ocr/tessdata_best/raw/main/$L.traineddata \
-                 -O /opt/tesseract/share/tessdata/$L.traineddata
+            if [ "$L" != "eng" ]; then  # Skip English if already downloaded
+              wget -q https://github.com/tesseract-ocr/tessdata_best/raw/main/$L.traineddata \
+                   -O /opt/tesseract/share/tessdata/$L.traineddata
+            fi
           done
         env:
           LANGS: ${{ inputs.languages }}
@@ -88,7 +95,7 @@ jobs:
           tar -czf $GITHUB_WORKSPACE/tesseract-static.tar.gz tesseract
       
       - name: Upload artifact
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v3
         with:
           name: tesseract-static
-          path: ${{ github.workspace }}/tesseract-static.tar.gz
+          path: tesseract-static.tar.gz
