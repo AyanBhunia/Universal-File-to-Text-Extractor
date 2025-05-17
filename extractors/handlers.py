@@ -4,11 +4,6 @@ import uuid
 import shutil
 import zipfile
 
-print("DEBUG - Current directory:", os.getcwd())
-print("DEBUG - Directory contents:", os.listdir())
-print("DEBUG - Directory contents:api", os.listdir('/api') if os.path.exists('/api') else "API DIR NOT FOUND")
-print("DEBUG - API directory contents:", os.listdir('/var/task/api') if os.path.exists('/var/task/api') else "API DIR NOT FOUND")
-
 import docx2txt
 from pathlib import Path
 import pytesseract
@@ -19,8 +14,8 @@ from docx.table import Table
 
 ROOT = Path(__file__).resolve().parent.parent / "api" / "ocr-bin"
 os.environ["PATH"] = str(ROOT / "bin") + os.pathsep + os.environ["PATH"]
-os.environ["TESSDATA_PREFIX"] = str(ROOT / "share")
-pytesseract.pytesseract.tesseract_cmd = str(ROOT / "bin" / "tesseract")
+os.environ["TESSDATA_PREFIX"] = str(ROOT / "share/tessdata")
+pytesseract.pytesseract.tesseract_cmd = str(ROOT / "bin" / "tesseract.exe")
 
 import fitz                       # PyMuPDF
 from striprtf.striprtf import rtf_to_text

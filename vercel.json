@@ -12,6 +12,11 @@
       "src": "/test",
       "methods": ["GET"],
       "dest": "api/index.py"
+    },
+    {
+      "src": "/test-ocr",
+      "methods": ["GET"],
+      "dest": "api/index.py"
     }
   ]
 }

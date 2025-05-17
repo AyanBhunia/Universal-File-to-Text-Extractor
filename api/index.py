@@ -73,3 +73,29 @@ async def extract(
 @app.get("/test")
 def test_connection():
     return {"message": "Connected"}
+
+@app.get("/test-ocr")
+async def test_ocr():
+    """Test if the OCR binary works"""
+    from PIL import Image, ImageDraw, ImageFont
+    import pytesseract
+    import os
+    from pathlib import Path
+    
+    # Create a test image with text
+    img = Image.new('RGB', (200, 50), color=(255, 255, 255))
+    d = ImageDraw.Draw(img)
+    d.text((10,10), "Testing OCR", fill=(0,0,0))
+    test_img_path = "/tmp/test_ocr.png"
+    img.save(test_img_path)
+    
+    # Get paths
+    binary_path = os.path.join(os.getcwd(), "api", "ocr-bin", "bin", "tesseract")
+    tessdata_path = os.path.join(os.getcwd(), "api", "ocr-bin", "share", "tessdata")
+    
+    return {
+        "binary_exists": os.path.exists(binary_path),
+        "tessdata_exists": os.path.exists(tessdata_path),
+        "language_files": os.listdir(tessdata_path) if os.path.exists(tessdata_path) else [],
+        "ocr_result": pytesseract.image_to_string(Image.open(test_img_path)).strip()
+    }
