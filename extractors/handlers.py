@@ -6,7 +6,7 @@ import zipfile
 
 print("DEBUG - Current directory:", os.getcwd())
 print("DEBUG - Directory contents:", os.listdir())
-print("DEBUG - Directory contents:api", os.listdir('/api'))
+print("DEBUG - Directory contents:api", os.listdir('/api') if os.path.exists('/api') else "API DIR NOT FOUND")
 print("DEBUG - API directory contents:", os.listdir('/var/task/api') if os.path.exists('/var/task/api') else "API DIR NOT FOUND")
 
 import docx2txt
