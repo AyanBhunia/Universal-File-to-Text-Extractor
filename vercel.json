@@ -1,6 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
+  "version": 3,
+
+  "functions": {
+    "api/index.py": {
+      "includeFiles": [
+        "ocr-bin/tesseract",
+        "tessdata/**"
+      ]
+    }
+  },
 
   "routes": [
     {
