@@ -4,7 +4,6 @@
 
   "functions": {
     "api/index.py": {
-      "runtime": "python3.9",
       "includeFiles": "{ocr-bin/tesseract,tessdata/**}"
     }
   },
