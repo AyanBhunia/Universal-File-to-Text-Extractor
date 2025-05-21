@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent / "api/ocr-bin"
 os.environ["PATH"] = str(ROOT) + os.pathsep + os.environ.get("PATH", "")
 
 # Tell Tesseract where to find the traineddata files
-os.environ["TESSDATA_PREFIX"] = str(Path(__file__).resolve().parent.parent / "tessdata")
+os.environ["TESSDATA_PREFIX"] = str(Path(__file__).resolve().parent.parent / "api/ocr-bin/tessdata")
 
 # Point pytesseract to the static binary
 import pytesseract
