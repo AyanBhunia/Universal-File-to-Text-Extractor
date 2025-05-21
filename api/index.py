@@ -90,8 +90,8 @@ async def test_ocr():
     img.save(test_img_path)
     
     # Get paths
-    binary_path = os.path.join(os.getcwd(), "api", "ocr-bin", "bin", "tesseract")
-    tessdata_path = os.path.join(os.getcwd(), "api", "ocr-bin", "share", "tessdata")
+    binary_path = os.path.join(os.getcwd(), "api", "ocr-bin", "bin", "libtesseract64.so")
+    tessdata_path = os.path.join(os.getcwd(), "api", "ocr-bin", "share", "libtesseract64.so")
     
     return {
         "binary_exists": os.path.exists(binary_path),
