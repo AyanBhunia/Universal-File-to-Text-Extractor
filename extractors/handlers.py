@@ -14,7 +14,7 @@ from docx.table import Table
 
 # ──────────────────────────────────────────────────────────────────────────────
 # ROOT now points to the `ocr-bin` folder at project root
-ROOT = Path(__file__).resolve().parent.parent / "ocr-bin"
+ROOT = Path(__file__).resolve().parent.parent / "api/ocr-bin"
 
 # Add the tesseract binary directory to PATH so subprocess can invoke it directly
 # (no ".exe" on Linux‐based Vercel runtime)
