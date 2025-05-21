@@ -21,11 +21,11 @@ ROOT = Path(__file__).resolve().parent.parent / "ocr-bin"
 os.environ["PATH"] = str(ROOT) + os.pathsep + os.environ.get("PATH", "")
 
 # Tell Tesseract where to find the traineddata files
-os.environ["TESSDATA_PREFIX"] = str(Path(__file__).resolve().parent.parent / "libtesseract64.so")
+os.environ["TESSDATA_PREFIX"] = str(Path(__file__).resolve().parent.parent / "tessdata")
 
 # Point pytesseract to the static binary
 import pytesseract
-pytesseract.pytesseract.tesseract_cmd = str(ROOT / "libtesseract64.so")
+pytesseract.pytesseract.tesseract_cmd = str(ROOT / "tesseract")
 # ──────────────────────────────────────────────────────────────────────────────
 
 import fitz                       # PyMuPDF
