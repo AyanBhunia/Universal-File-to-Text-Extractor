@@ -31,6 +31,7 @@ pytesseract.pytesseract.tesseract_cmd = str(ROOT / "tesseract")
 import fitz                       # PyMuPDF
 from striprtf.striprtf import rtf_to_text
 from bs4 import BeautifulSoup     # HTML parsing
+import base64
 
 IMG_DIR = "/tmp/images"
 os.makedirs(IMG_DIR, exist_ok=True)
@@ -52,6 +53,16 @@ def iter_block_items(parent):
         elif tag == 'tbl':
             yield Table(child, parent)
 
+
+# utility to encode images
+def encode_images(paths):
+    encoded = []
+    for p in paths:
+        with open(p, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode('ascii')
+        encoded.append({"filename": Path(p).name, "data": b64})
+    return encoded
+
 def extract_docx(path: str) -> list:
     # clear temp images
     for f in os.listdir(IMG_DIR):
@@ -61,6 +72,7 @@ def extract_docx(path: str) -> list:
 
     doc = Document(path)
     blocks = []
+    used = []
     img_ix = 0
     for blk in iter_block_items(doc):
         if isinstance(blk, Paragraph):
@@ -77,6 +89,7 @@ def extract_docx(path: str) -> list:
                             "filename": os.path.basename(img_path),
                             "content":  ocr_image_path(img_path)
                         })
+                        used.append(img_path)
                         img_ix += 1
                 else:
                     accum += run.text
@@ -85,10 +98,12 @@ def extract_docx(path: str) -> list:
         else:  # Table
             rows = [[cell.text for cell in row.cells] for row in blk.rows]
             blocks.append({"type": "table", "content": rows})
+
+    encoded_images = encode_images(used)
     # Clean temp images? Optional.
     for f in os.listdir(IMG_DIR):
         os.remove(os.path.join(IMG_DIR, f))
-    return blocks
+    return blocks, encoded_images
 
 # ——— PDF: block extractor ———
 def extract_pdf(path: str) -> list:
