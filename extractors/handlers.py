@@ -136,7 +136,7 @@ def extract_pdf(path: str) -> list:
                 })
                 os.remove(dst)
     doc.close()
-    return blocks
+    return blocks, encoded_images
 
 # ——— RTF: block extractor ———
 def extract_rtf(path: str) -> list:
@@ -184,7 +184,7 @@ def extract_zip(path: str) -> list:
                             })
                             os.remove(dst)
     shutil.rmtree(temp_dir)  # always clean up
-    return blocks
+    return blocks, encoded_images
 
 # ——— Dispatcher ———
 DISPATCH = {

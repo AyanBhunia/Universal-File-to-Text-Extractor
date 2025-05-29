@@ -34,10 +34,7 @@ async def extract(
             f.write(await file.read())
 
         # handler now returns (blocks, encoded_images)
-        if include_images:
-            blocks, encoded_images = handler(tmp)
-        else:
-            blocks = handler(tmp)
+        blocks, encoded_images = handler(tmp)
 
         payload = {
             "id": str(uuid.uuid4()),
