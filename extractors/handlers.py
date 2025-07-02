@@ -188,6 +188,18 @@ def extract_zip(path: str) -> list:
     encoded_images = []
     return blocks, encoded_images
 
+
+# ——— IMAGE: block extractor ———
+def extract_image(path: str) -> list:
+    blocks = [{
+        "type": "image_ocr",
+        "filename": os.path.basename(path),
+        "content": ocr_image_path(path)
+    }]
+    encoded_images = encode_images([path])
+    return blocks, encoded_images
+
+
 # ——— Dispatcher ———
 DISPATCH = {
     ".docx": extract_docx,
@@ -195,7 +207,14 @@ DISPATCH = {
     ".rtf":  extract_rtf,
     ".txt":  extract_txt,
     ".zip":  extract_zip,
+    ".png":  extract_image,
+    ".jpg":  extract_image,
+    ".jpeg": extract_image,
+    ".bmp":  extract_image,
+    ".tif":  extract_image,
+    ".tiff": extract_image,
 }
+
 
 # Optional: Standalone CLI
 if __name__ == "__main__":
